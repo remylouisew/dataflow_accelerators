@@ -1,0 +1,56 @@
+# Instructions for me creating and deploying a flex template using GPUs
+#based on: https://github.com/GoogleCloudPlatform/python-docs-samples/tree/main/dataflow/flex-templates/getting_started
+
+#create respository
+export REGION="us-central1"
+export REPOSITORY="rw-dataflow"
+export PROJECT="cool-machine-learning"
+export BUCKET="rw-dataflow"
+
+gcloud artifacts repositories create $REPOSITORY \
+    --repository-format=docker \
+    --location=$REGION
+
+#TODO: configure flex template to use my customer Dockerfile : 
+#https://cloud.google.com/dataflow/docs/guides/templates/configuring-flex-templates#use_an_image_from_a_private_registry
+
+#maybe auth to docker registry? I built a custom dockerfile to built the template off of
+
+#build the docker image
+# Use a unique tag to version the artifacts that are built.
+export TAG=`date +%Y%m%d%H%M%S`
+export SDK_CONTAINER_IMAGE="$REGION-docker.pkg.dev/$PROJECT/$REPOSITORY/rw_gpu:$TAG"
+
+gcloud builds submit .  --tag $SDK_CONTAINER_IMAGE --project $PROJECT
+
+
+#build the template
+gcloud dataflow flex-template build gs://rw-dataflow/rw_GPU1.json \
+    --image "$REGION-docker.pkg.dev/$PROJECT/$REPOSITORY/rw_gpu:20240827191252" \
+    --sdk-language "PYTHON" 
+
+gcloud dataflow flex-template build gs://rw-dataflow/rw_GPU.json \
+    --image "$REGION-docker.pkg.dev/$PROJECT/$REPOSITORY/rw_gpu:20240827214150" \
+    --sdk-language "PYTHON" 
+
+#run the template
+export GPU_TYPE="nvidia-tesla-t4"
+export GPU_COUNT=1
+export IMAGE="rw_gpu"
+
+
+
+gcloud dataflow flex-template run rwtest1 \
+ --template-file-gcs-location "gs://rw-dataflow/rw_GPU.json" \
+ --project=cool-machine-learning \
+ --region=us-central1 \
+ --temp-location=gs://rw-dataflow/temp \
+ --staging-location=gs://rw-dataflow/staging \
+ --parameters project=cool-machine-learning \
+ --parameters runner=DataflowRunner \
+ --parameters sdk_container_image=gcr.io/us-central1-docker.pkg.dev/cool-machine-learning/rw-dataflow/rw_gpu:20240827214150 \
+ --parameters worker_machine_type=n1-standard-4 \
+ --parameters dataflow_service_options='worker_accelerator=type:nvidia-tesla-t4;count:1;install-nvidia-driver' \
+ --parameters additional_experiments=use_runner_v2 \
+ --parameters disk_size_gb=50
+
