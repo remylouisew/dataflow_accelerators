@@ -25,7 +25,7 @@ RUN apt-get update \
     && pip check
 
 # Copy the Apache Beam worker dependencies from the Beam Python 3.6 SDK image.
-COPY --from=apache/beam_python3.9_sdk:2.52.0 /opt/apache/beam /opt/apache/beam
+COPY --from=apache/beam_python3.10_sdk:2.52.0 /opt/apache/beam /opt/apache/beam
 # Set the entrypoint to Apache Beam SDK worker launcher.
 ENTRYPOINT [ "/opt/apache/beam/boot" ]
 

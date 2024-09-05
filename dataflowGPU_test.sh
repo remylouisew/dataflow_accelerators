@@ -18,6 +18,21 @@ axlearn gcp dataflow start \
         --output=/tmp/output_dir/outputs
        '"
 
+# axlearn on CPU - works
+axlearn gcp dataflow start \
+    --name=$USER-dataflow \
+    --bundler_spec=dockerfile=Dockerfile \
+    --bundler_spec=target=dataflow \
+    --bundler_spec=allow_dirty=True \
+    --dataflow_spec=runner=DataflowRunner \
+    --dataflow_spec=region=us-central1 \
+    --dataflow_spec=machine_type=n2-standard-8 \
+    -- python3 -m apache_beam.examples.wordcount \
+            --input=gs://dataflow-samples/shakespeare/kinglear.txt \
+        --output=gs://ttl-30d-us-central2/axlearn/users/jesusfc/dataflow/wordcount
+
+
+# try with GPUs...doesn't work because can't parse dataflow_service_options
 axlearn gcp dataflow start \
     --bundler_spec=dockerfile=Dockerfile \
     --bundler_spec=repo=${DOCKER_REPO} \
@@ -30,18 +45,23 @@ axlearn gcp dataflow start \
         --output=/tmp/output_dir/outputs \
        '"
 
+#try with new dockerfile 08/28
+DOCKER_REPO=us-central1-docker.pkg.dev/cool-machine-learning/axlearn
+DOCKER_IMAGE=maingpu
+
 axlearn gcp dataflow start \
     --bundler_spec=dockerfile=Dockerfile \
     --bundler_spec=repo=${DOCKER_REPO} \
     --bundler_spec=image=${DOCKER_IMAGE} \
     --bundler_spec=allow_dirty=True \
     --dataflow_spec=runner=DataflowRunner \
-    --dataflow_spec=dataflow_service_options="enable_secure_boot,enable_google_cloud_heap_sampling,worker_accelerator=type:nvidia-l4;count:1;install-nvidia-driver" \
+    --dataflow_spec=dataflow_service_options="'worker_accelerator=type:nvidia-l4;count:1;install-nvidia-driver'" \
     -- "'
-    python3 -m apache_beam.examples.wordcount \
-        --input=gs://dataflow-samples/shakespeare/kinglear.txt \
-        --output=gsL///output_dir/outputs \
+    python3 -m axlearn.cloud.gcp.examples.mainGPU 
        '"
+
+axlearn gcp dataflow start \
+
 
 --dataflow_spec="dataflow_service_options=enable_secure_boot,enable_google_cloud_heap_sampling,some_other_option" \
 
